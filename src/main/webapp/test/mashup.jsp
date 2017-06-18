@@ -14,9 +14,6 @@
     <title>Webpage Compilation - TEAMMATES</title>
 
     <link rel="shortcut icon" href="/favicon.png">
-    <link type="text/css" href="<%= FrontEndLibrary.BOOTSTRAP_CSS %>" rel="stylesheet">
-    <link type="text/css" href="<%= FrontEndLibrary.BOOTSTRAP_THEME_CSS %>" rel="stylesheet">
-    <link type="text/css" href="/stylesheets/teammatesCommon.css" rel="stylesheet">
     <style>
       .full-width {
         width: 100%;
@@ -430,8 +427,7 @@
     </div>
   </body>
 
-  <script type="text/javascript" src="<%= FrontEndLibrary.JQUERY %>"></script>
-  <script type="text/javascript" src="<%= FrontEndLibrary.BOOTSTRAP %>"></script>
+  <script type="text/javascript" src="/js/libs-common.js"></script>
   <script>
     (function() {
       $(document).ready(function() {
