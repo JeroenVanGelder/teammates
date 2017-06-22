@@ -179,14 +179,7 @@ public final class HtmlHelper {
                 }
             }
         } else if (currentNode.getNodeName().equalsIgnoreCase("style")) {
-            NamedNodeMap attributes = currentNode.getAttributes();
-            for (int i = 0; i < attributes.getLength(); i++) {
-                Node attribute = attributes.item(i);
-                if (isTinymceStyleAttribute(attribute)) {
-                    // ignore as the style definition differs across browsers
-                    return ignoreNode();
-                }
-            }
+            return ignoreNode();
         }
 
         return generateNodeStringRepresentation(currentNode, indentation, isPart);
@@ -257,10 +250,6 @@ public final class HtmlHelper {
         String value = attribute.getNodeValue();
         return value.contains("position: static") && value.contains("height: 0px") && value.contains("width: 0px")
                 && value.contains("padding: 0px") && value.contains("margin: 0px");
-    }
-
-    private static boolean isTinymceStyleAttribute(Node attribute) {
-        return checkForAttributeWithSpecificValue(attribute, "id", "mceDefaultStyles");
     }
 
     /**
@@ -473,6 +462,8 @@ public final class HtmlHelper {
                       .replaceAll(dateTimeNow + REGEX_DISPLAY_TIME, "\\${datetime\\.now}")
                       .replaceAll(dateTimeNowInIso8601 + REGEX_DISPLAY_TIME_ISO_8601_UTC, "\\${datetime\\.now\\.iso8601utc}")
                       .replaceAll(dateTimeNowInCoursesPageFormat, "\\${datetime\\.now\\.courses}")
+                      // TinyMCE CSS skin
+                      .replace(TestProperties.TEAMMATES_URL + "/js/skins/", "${test.url}/js/skins/")
                       // admin footer, test institute section
                       .replaceAll("(?s)<div( class=\"col-md-8\"| id=\"adminInstitute\"){2}>"
                                               + REGEX_ADMIN_INSTITUTE_FOOTER + "</div>",
