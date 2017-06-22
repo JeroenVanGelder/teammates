@@ -29,7 +29,7 @@
         <td id="momentjs"></td>
       </tr>
     </table>
-    <script type="text/javascript" src="<%= FrontEndLibrary.MOMENT %>"></script>
+    <script type="text/javascript" src="/js/libs-moment.js"></script>
     <script type="text/javascript" src="/data/moment-timezone-with-data-2013-2023.min.js"></script>
     <script>
       function isSupportedByJava(name) {
