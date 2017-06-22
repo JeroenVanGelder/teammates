@@ -7,7 +7,8 @@
     "jquery-highlight": "3.4.0",
     "jquery-ui": "1.12.1",
     "moment": "2.21.0",
-    "printthis": "0.1.5"
+    "printthis": "0.1.5",
+    "tinymce": "4.7.9"
   },
   "devDependencies": {
     "babel-core": "6.26.0",
