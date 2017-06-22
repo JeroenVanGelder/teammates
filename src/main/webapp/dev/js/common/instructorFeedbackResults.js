@@ -20,6 +20,12 @@ import {
     toggleSingleCollapse,
 } from './ui';
 
+require.context(
+        'file-loader?name=printview.css&context=src/main/webapp!../../css/',
+        true,
+        /printview\.css$/
+);
+
 function submitFormAjax() {
     const formObject = $('#csvToHtmlForm');
     const formData = formObject.serialize();
@@ -302,7 +308,7 @@ function prepareInstructorFeedbackResultsPage() {
         $('#mainContent').printThis({
             importCSS: true,
             importStyle: true,
-            loadCSS: '/stylesheets/printview.css',
+            loadCSS: '/js/printview.css',
         });
     });
 
