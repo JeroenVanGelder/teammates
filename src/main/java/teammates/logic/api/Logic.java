@@ -39,6 +39,7 @@ import teammates.common.exception.ExceedingRangeException;
 import teammates.common.exception.InvalidParametersException;
 import teammates.common.exception.JoinCourseException;
 import teammates.common.util.Assumption;
+import teammates.common.util.CsvUtils;
 import teammates.common.util.GoogleCloudStorageHelper;
 import teammates.logic.core.AccountsLogic;
 import teammates.logic.core.AdminEmailsLogic;
@@ -1291,8 +1292,7 @@ public class Logic {
      * Generates summary results (without comments) in CSV format. <br>
      * Preconditions: <br>
      * * All parameters(except questionId) are non-null. <br>
-     * @see FeedbackSessionsLogic#getFeedbackSessionResultsSummaryAsCsv(String, String,
-     *      String, String, boolean, boolean)
+     * @see FeedbackSessionsLogic#getFeedbackSessionResultsSummaryAsCsv(String, String, String, String, boolean, boolean)
      */
     public String getFeedbackSessionResultSummaryAsCsv(
             String courseId, String feedbackSessionName, String instructorEmail,
@@ -1311,8 +1311,7 @@ public class Logic {
      * Generates summary results (without comments) within a section in CSV format. <br>
      * Preconditions: <br>
      * * All parameters(except questionId) are non-null. <br>
-     * @see FeedbackSessionsLogic#getFeedbackSessionResultsSummaryInSectionAsCsv(String, String, String,
-     *      String, String, boolean, boolean)
+     * @see FeedbackSessionsLogic#getFeedbackSessionResultsSummaryInSectionAsCsv(String, String, String, String, String, boolean, boolean)
      */
     public String getFeedbackSessionResultSummaryInSectionAsCsv(
             String courseId, String feedbackSessionName, String instructorEmail,
