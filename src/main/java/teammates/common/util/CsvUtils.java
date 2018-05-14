@@ -5,6 +5,7 @@ import teammates.common.datatransfer.FeedbackSessionResultsBundle;
 import teammates.common.datatransfer.attributes.FeedbackQuestionAttributes;
 import teammates.common.datatransfer.attributes.FeedbackResponseAttributes;
 import teammates.common.datatransfer.attributes.FeedbackResponseCommentAttributes;
+import teammates.common.datatransfer.FeedbackSessionIdentification;
 import teammates.common.datatransfer.questions.FeedbackQuestionDetails;
 import teammates.common.exception.EntityDoesNotExistException;
 import teammates.common.exception.ExceedingRangeException;
@@ -18,7 +19,6 @@ import java.util.Set;
 public final class CsvUtils {
 
     private static final CsvUtils instance = new CsvUtils();
-    private static final FeedbackSessionsLogic feedbackSessionsLogic = FeedbackSessionsLogic.inst();
     private static final String ERROR_NUMBER_OF_RESPONSES_EXCEEDS_RANGE = "Number of responses exceeds the limited range";
 
     private CsvUtils(){}
@@ -28,30 +28,11 @@ public final class CsvUtils {
     }
 
     public String getFeedbackSessionResultsSummaryInSectionAsCsv(
-            String feedbackSessionName, String courseId, String userEmail,
-            String section, String questionId, boolean isMissingResponsesShown, boolean isStatsShown)
+            FeedbackSessionIdentification feedbackSessionIdentification, boolean isMissingResponsesShown, boolean isStatsShown)
             throws EntityDoesNotExistException, ExceedingRangeException {
 
         FeedbackSessionResultsBundle results;
-        int indicatedRange = section == null ? Const.INSTRUCTOR_VIEW_RESPONSE_LIMIT : -1;
-
-        if (questionId == null) {
-            results = feedbackSessionsLogic.getFeedbackSessionResultsForInstructorInSectionWithinRangeFromView(
-                    feedbackSessionName, courseId, userEmail, section,
-                    indicatedRange, Const.FeedbackSessionResults.GRQ_SORT_TYPE);
-        } else if (section == null) {
-            results = feedbackSessionsLogic.getFeedbackSessionResultsForInstructorFromQuestion(
-                    feedbackSessionName, courseId, userEmail, questionId);
-        } else {
-            results = feedbackSessionsLogic.getFeedbackSessionResultsForInstructorFromQuestionInSection(
-                    feedbackSessionName, courseId, userEmail, questionId, section);
-        }
-
-        if (!results.isComplete) {
-            throw new ExceedingRangeException(ERROR_NUMBER_OF_RESPONSES_EXCEEDS_RANGE);
-        }
-        // sort responses by giver > recipient > qnNumber
-        results.responses.sort(results.compareByGiverRecipientQuestion);
+        results = getSortedFeedbackSessionResultsBundle(feedbackSessionIdentification);
 
         StringBuilder exportBuilder = new StringBuilder(100);
 
@@ -62,8 +43,8 @@ public final class CsvUtils {
                         SanitizationHelper.sanitizeForCsv(results.feedbackSession.getFeedbackSessionName())))
                 .append(System.lineSeparator());
 
-        if (section != null) {
-            exportBuilder.append(String.format("Section Name,%s", SanitizationHelper.sanitizeForCsv(section)))
+        if (feedbackSessionIdentification.getSection() != null) {
+            exportBuilder.append(String.format("Section Name,%s", SanitizationHelper.sanitizeForCsv(feedbackSessionIdentification.getSection())))
                     .append(System.lineSeparator());
         }
 
@@ -74,16 +55,57 @@ public final class CsvUtils {
 
         for (Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>> entry : entrySet) {
             exportBuilder.append(getFeedbackSessionResultsForQuestionInCsvFormat(
-                    results, entry, isMissingResponsesShown, isStatsShown, section, feedbackSessionsLogic));
+                    results, entry, isMissingResponsesShown, isStatsShown, feedbackSessionIdentification.getSection()));
         }
 
         return exportBuilder.toString();
     }
 
+    private FeedbackSessionResultsBundle getSortedFeedbackSessionResultsBundle(FeedbackSessionIdentification feedbackSessionIdentification) throws EntityDoesNotExistException, ExceedingRangeException {
+        FeedbackSessionResultsBundle results;
+        results = getFeedbackSessionResultsBundle(feedbackSessionIdentification);
+
+        if (!results.isComplete) {
+            throw new ExceedingRangeException(ERROR_NUMBER_OF_RESPONSES_EXCEEDS_RANGE);
+        }
+        // sort responses by giver > recipient > qnNumber
+        results.responses.sort(results.compareByGiverRecipientQuestion);
+        return results;
+    }
+
+    private FeedbackSessionResultsBundle getFeedbackSessionResultsBundle(
+            FeedbackSessionIdentification feedbackSessionIdentification)
+            throws EntityDoesNotExistException {
+
+        FeedbackSessionResultsBundle results;
+
+
+        if (feedbackSessionIdentification.questionId == null) {
+
+            int indicatedRange = feedbackSessionIdentification.section == null ? Const.INSTRUCTOR_VIEW_RESPONSE_LIMIT : -1;
+
+            results = FeedbackSessionsLogic.inst().getFeedbackSessionResultsForInstructorInSectionWithinRangeFromView(
+                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.section,
+                    indicatedRange, Const.FeedbackSessionResults.GRQ_SORT_TYPE);
+
+        } else if (feedbackSessionIdentification.section == null) {
+
+            results = FeedbackSessionsLogic.inst().getFeedbackSessionResultsForInstructorFromQuestion(
+                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.questionId);
+
+        } else {
+
+            results = FeedbackSessionsLogic.inst().getFeedbackSessionResultsForInstructorFromQuestionInSection(
+                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.questionId, feedbackSessionIdentification.section);
+        }
+
+        return results;
+    }
+
     private StringBuilder getFeedbackSessionResultsForQuestionInCsvFormat(
             FeedbackSessionResultsBundle fsrBundle,
             Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>> entry,
-            boolean isMissingResponsesShown, boolean isStatsShown, String section, FeedbackSessionsLogic feedbackSessionsLogic) {
+            boolean isMissingResponsesShown, boolean isStatsShown, String section) {
 
         FeedbackQuestionAttributes question = entry.getKey();
         FeedbackQuestionDetails questionDetails = question.getQuestionDetails();

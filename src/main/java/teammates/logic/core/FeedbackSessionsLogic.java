@@ -539,6 +539,7 @@ public final class FeedbackSessionsLogic {
         // Load details of students and instructors once and pass it to callee
         // methods
         // (rather than loading them many times).
+
         CourseRoster roster = new CourseRoster(
                 studentsLogic.getStudentsForCourse(courseId),
                 instructorsLogic.getInstructorsForCourse(courseId));
@@ -2091,24 +2092,21 @@ public final class FeedbackSessionsLogic {
     }
 
     public String getFeedbackSessionResultsSummaryAsCsv(
-            String feedbackSessionName, String courseId, String userEmail,
-            String questionId, boolean isMissingResponsesShown, boolean isStatsShown)
+            FeedbackSessionIdentification feedbackSessionIdentification, boolean isMissingResponsesShown, boolean isStatsShown)
             throws EntityDoesNotExistException, ExceedingRangeException {
 
         String results = getFeedbackSessionResultsSummaryInSectionAsCsv(
-                feedbackSessionName, courseId, userEmail, null, questionId,
-                isMissingResponsesShown, isStatsShown);
+                feedbackSessionIdentification, isMissingResponsesShown, isStatsShown);
 
         return results;
     }
 
     public String getFeedbackSessionResultsSummaryInSectionAsCsv(
-            String feedbackSessionName, String courseId, String userEmail,
-            String section, String questionId, boolean isMissingResponsesShown, boolean isStatsShown)
+            FeedbackSessionIdentification feedbackSessionIdentification, boolean isMissingResponsesShown, boolean isStatsShown)
             throws EntityDoesNotExistException, ExceedingRangeException {
 
 
-        String results = csvUtils.getFeedbackSessionResultsSummaryInSectionAsCsv(feedbackSessionName,courseId,userEmail,section,questionId,isMissingResponsesShown,isStatsShown);
+        String results = csvUtils.getFeedbackSessionResultsSummaryInSectionAsCsv(feedbackSessionIdentification, isMissingResponsesShown,isStatsShown);
 
         return results;
     }

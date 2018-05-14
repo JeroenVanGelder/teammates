@@ -7,21 +7,7 @@ import java.util.Map;
 
 import com.google.appengine.api.blobstore.BlobKey;
 
-import teammates.common.datatransfer.CourseDetailsBundle;
-import teammates.common.datatransfer.CourseEnrollmentResult;
-import teammates.common.datatransfer.CourseRoster;
-import teammates.common.datatransfer.CourseSummaryBundle;
-import teammates.common.datatransfer.FeedbackResponseCommentSearchResultBundle;
-import teammates.common.datatransfer.FeedbackSessionDetailsBundle;
-import teammates.common.datatransfer.FeedbackSessionQuestionsBundle;
-import teammates.common.datatransfer.FeedbackSessionResponseStatus;
-import teammates.common.datatransfer.FeedbackSessionResultsBundle;
-import teammates.common.datatransfer.InstructorPrivileges;
-import teammates.common.datatransfer.InstructorSearchResultBundle;
-import teammates.common.datatransfer.SectionDetailsBundle;
-import teammates.common.datatransfer.StudentEnrollDetails;
-import teammates.common.datatransfer.StudentSearchResultBundle;
-import teammates.common.datatransfer.TeamDetailsBundle;
+import teammates.common.datatransfer.*;
 import teammates.common.datatransfer.attributes.AccountAttributes;
 import teammates.common.datatransfer.attributes.AdminEmailAttributes;
 import teammates.common.datatransfer.attributes.CourseAttributes;
@@ -39,7 +25,6 @@ import teammates.common.exception.ExceedingRangeException;
 import teammates.common.exception.InvalidParametersException;
 import teammates.common.exception.JoinCourseException;
 import teammates.common.util.Assumption;
-import teammates.common.util.CsvUtils;
 import teammates.common.util.GoogleCloudStorageHelper;
 import teammates.logic.core.AccountsLogic;
 import teammates.logic.core.AdminEmailsLogic;
@@ -1292,7 +1277,7 @@ public class Logic {
      * Generates summary results (without comments) in CSV format. <br>
      * Preconditions: <br>
      * * All parameters(except questionId) are non-null. <br>
-     * @see FeedbackSessionsLogic#getFeedbackSessionResultsSummaryAsCsv(String, String, String, String, boolean, boolean)
+     * @see FeedbackSessionsLogic#getFeedbackSessionResultsSummaryAsCsv(teammates.common.datatransfer.FeedbackSessionIdentification, boolean, boolean)
      */
     public String getFeedbackSessionResultSummaryAsCsv(
             String courseId, String feedbackSessionName, String instructorEmail,
@@ -1302,16 +1287,16 @@ public class Logic {
         Assumption.assertNotNull(courseId);
         Assumption.assertNotNull(feedbackSessionName);
 
-        return feedbackSessionsLogic.getFeedbackSessionResultsSummaryAsCsv(
-                feedbackSessionName, courseId, instructorEmail, questionId,
-                isMissingResponsesShown, isStatsShown);
+        FeedbackSessionIdentification feedbackSessionIdentification = new FeedbackSessionIdentification(feedbackSessionName,courseId,instructorEmail,null,questionId);
+
+        return feedbackSessionsLogic.getFeedbackSessionResultsSummaryAsCsv(feedbackSessionIdentification, isMissingResponsesShown, isStatsShown);
     }
 
     /**
      * Generates summary results (without comments) within a section in CSV format. <br>
      * Preconditions: <br>
      * * All parameters(except questionId) are non-null. <br>
-     * @see FeedbackSessionsLogic#getFeedbackSessionResultsSummaryInSectionAsCsv(String, String, String, String, String, boolean, boolean)
+     * @see FeedbackSessionsLogic#getFeedbackSessionResultsSummaryInSectionAsCsv(teammates.common.datatransfer.FeedbackSessionIdentification, boolean, boolean)
      */
     public String getFeedbackSessionResultSummaryInSectionAsCsv(
             String courseId, String feedbackSessionName, String instructorEmail,
@@ -1322,9 +1307,9 @@ public class Logic {
         Assumption.assertNotNull(feedbackSessionName);
         Assumption.assertNotNull(section);
 
-        return feedbackSessionsLogic.getFeedbackSessionResultsSummaryInSectionAsCsv(
-                feedbackSessionName, courseId, instructorEmail, section,
-                questionId, isMissingResponsesShown, isStatsShown);
+        FeedbackSessionIdentification feedbackSessionIdentification = new FeedbackSessionIdentification(feedbackSessionName,courseId,instructorEmail,section,questionId);
+
+        return feedbackSessionsLogic.getFeedbackSessionResultsSummaryInSectionAsCsv(feedbackSessionIdentification, isMissingResponsesShown, isStatsShown);
     }
 
     /**
