@@ -1277,7 +1277,7 @@ public class Logic {
      * Generates summary results (without comments) in CSV format. <br>
      * Preconditions: <br>
      * * All parameters(except questionId) are non-null. <br>
-     * @see FeedbackSessionsLogic#getFeedbackSessionResultsSummaryAsCsv(teammates.common.datatransfer.FeedbackSessionIdentification, boolean, boolean)
+     * @see FeedbackSessionsLogic#getFeedbackSessionResultsSummaryAsCsv(teammates.common.datatransfer.FeedbackSessionIdentification)
      */
     public String getFeedbackSessionResultSummaryAsCsv(
             String courseId, String feedbackSessionName, String instructorEmail,
@@ -1287,16 +1287,16 @@ public class Logic {
         Assumption.assertNotNull(courseId);
         Assumption.assertNotNull(feedbackSessionName);
 
-        FeedbackSessionIdentification feedbackSessionIdentification = new FeedbackSessionIdentification(feedbackSessionName,courseId,instructorEmail,null,questionId);
+        FeedbackSessionIdentification feedbackSessionIdentification = new FeedbackSessionIdentification(feedbackSessionName,courseId,instructorEmail,null,questionId, isMissingResponsesShown, isStatsShown);
 
-        return feedbackSessionsLogic.getFeedbackSessionResultsSummaryAsCsv(feedbackSessionIdentification, isMissingResponsesShown, isStatsShown);
+        return feedbackSessionsLogic.getFeedbackSessionResultsSummaryAsCsv(feedbackSessionIdentification);
     }
 
     /**
      * Generates summary results (without comments) within a section in CSV format. <br>
      * Preconditions: <br>
      * * All parameters(except questionId) are non-null. <br>
-     * @see FeedbackSessionsLogic#getFeedbackSessionResultsSummaryInSectionAsCsv(teammates.common.datatransfer.FeedbackSessionIdentification, boolean, boolean)
+     * @see FeedbackSessionsLogic#getFeedbackSessionResultsSummaryInSectionAsCsv(teammates.common.datatransfer.FeedbackSessionIdentification)
      */
     public String getFeedbackSessionResultSummaryInSectionAsCsv(
             String courseId, String feedbackSessionName, String instructorEmail,
@@ -1307,9 +1307,9 @@ public class Logic {
         Assumption.assertNotNull(feedbackSessionName);
         Assumption.assertNotNull(section);
 
-        FeedbackSessionIdentification feedbackSessionIdentification = new FeedbackSessionIdentification(feedbackSessionName,courseId,instructorEmail,section,questionId);
+        FeedbackSessionIdentification feedbackSessionIdentification = new FeedbackSessionIdentification(feedbackSessionName,courseId,instructorEmail,section,questionId, isMissingResponsesShown, isStatsShown);
 
-        return feedbackSessionsLogic.getFeedbackSessionResultsSummaryInSectionAsCsv(feedbackSessionIdentification, isMissingResponsesShown, isStatsShown);
+        return feedbackSessionsLogic.getFeedbackSessionResultsSummaryAsCsv(feedbackSessionIdentification);
     }
 
     /**

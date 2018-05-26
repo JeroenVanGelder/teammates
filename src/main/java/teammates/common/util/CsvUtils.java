@@ -19,7 +19,6 @@ import java.util.Set;
 public final class CsvUtils {
 
     private static final CsvUtils instance = new CsvUtils();
-    private static final String ERROR_NUMBER_OF_RESPONSES_EXCEEDS_RANGE = "Number of responses exceeds the limited range";
 
     private CsvUtils(){}
 
@@ -28,19 +27,28 @@ public final class CsvUtils {
     }
 
     public String getFeedbackSessionResultsSummaryInSectionAsCsv(
-            FeedbackSessionIdentification feedbackSessionIdentification, boolean isMissingResponsesShown, boolean isStatsShown)
-            throws EntityDoesNotExistException, ExceedingRangeException {
+            FeedbackSessionIdentification feedbackSessionIdentification, FeedbackSessionResultsBundle resultsBundle){
 
-        FeedbackSessionResultsBundle results;
-        results = getSortedFeedbackSessionResultsBundle(feedbackSessionIdentification);
+        StringBuilder exportBuilder = new StringBuilder(100);
 
+        String header = createHeader(resultsBundle, feedbackSessionIdentification);
+        exportBuilder.append(header);
+
+        String body = fillFeedbackResultsForQuestionsWithEntrySet(feedbackSessionIdentification, resultsBundle);
+        exportBuilder.append(body);
+
+        return exportBuilder.toString();
+    }
+
+    private String createHeader(FeedbackSessionResultsBundle results, FeedbackSessionIdentification feedbackSessionIdentification) {
         StringBuilder exportBuilder = new StringBuilder(100);
 
         exportBuilder.append(String.format("Course,%s",
                 SanitizationHelper.sanitizeForCsv(results.feedbackSession.getCourseId())))
-                .append(System.lineSeparator())
-                .append(String.format("Session Name,%s",
-                        SanitizationHelper.sanitizeForCsv(results.feedbackSession.getFeedbackSessionName())))
+                .append(System.lineSeparator());
+
+        exportBuilder.append(String.format("Session Name,%s",
+                SanitizationHelper.sanitizeForCsv(results.feedbackSession.getFeedbackSessionName())))
                 .append(System.lineSeparator());
 
         if (feedbackSessionIdentification.getSection() != null) {
@@ -50,59 +58,23 @@ public final class CsvUtils {
 
         exportBuilder.append(System.lineSeparator()).append(System.lineSeparator());
 
+        return exportBuilder.toString();
+    }
+
+    private String fillFeedbackResultsForQuestionsWithEntrySet(FeedbackSessionIdentification feedbackSessionIdentification, FeedbackSessionResultsBundle results) {
+        StringBuilder exportBuilder =  new StringBuilder(100);
+
         Set<Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>>> entrySet =
                 results.getQuestionResponseMap().entrySet();
 
         for (Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>> entry : entrySet) {
-            exportBuilder.append(getFeedbackSessionResultsForQuestionInCsvFormat(
-                    results, entry, isMissingResponsesShown, isStatsShown, feedbackSessionIdentification.getSection()));
+            String feedbackSessionResultForQuestion = getFeedbackSessionResultsForQuestionInCsvFormat(results, entry, feedbackSessionIdentification.isMissingResponsesShown, feedbackSessionIdentification.isStatsShown, feedbackSessionIdentification.getSection());
+            exportBuilder.append(feedbackSessionResultForQuestion);
         }
-
         return exportBuilder.toString();
     }
 
-    private FeedbackSessionResultsBundle getSortedFeedbackSessionResultsBundle(FeedbackSessionIdentification feedbackSessionIdentification) throws EntityDoesNotExistException, ExceedingRangeException {
-        FeedbackSessionResultsBundle results;
-        results = getFeedbackSessionResultsBundle(feedbackSessionIdentification);
-
-        if (!results.isComplete) {
-            throw new ExceedingRangeException(ERROR_NUMBER_OF_RESPONSES_EXCEEDS_RANGE);
-        }
-        // sort responses by giver > recipient > qnNumber
-        results.responses.sort(results.compareByGiverRecipientQuestion);
-        return results;
-    }
-
-    private FeedbackSessionResultsBundle getFeedbackSessionResultsBundle(
-            FeedbackSessionIdentification feedbackSessionIdentification)
-            throws EntityDoesNotExistException {
-
-        FeedbackSessionResultsBundle results;
-
-
-        if (feedbackSessionIdentification.questionId == null) {
-
-            int indicatedRange = feedbackSessionIdentification.section == null ? Const.INSTRUCTOR_VIEW_RESPONSE_LIMIT : -1;
-
-            results = FeedbackSessionsLogic.inst().getFeedbackSessionResultsForInstructorInSectionWithinRangeFromView(
-                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.section,
-                    indicatedRange, Const.FeedbackSessionResults.GRQ_SORT_TYPE);
-
-        } else if (feedbackSessionIdentification.section == null) {
-
-            results = FeedbackSessionsLogic.inst().getFeedbackSessionResultsForInstructorFromQuestion(
-                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.questionId);
-
-        } else {
-
-            results = FeedbackSessionsLogic.inst().getFeedbackSessionResultsForInstructorFromQuestionInSection(
-                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.questionId, feedbackSessionIdentification.section);
-        }
-
-        return results;
-    }
-
-    private StringBuilder getFeedbackSessionResultsForQuestionInCsvFormat(
+    private String getFeedbackSessionResultsForQuestionInCsvFormat(
             FeedbackSessionResultsBundle fsrBundle,
             Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>> entry,
             boolean isMissingResponsesShown, boolean isStatsShown, String section) {
@@ -175,7 +147,7 @@ public final class CsvUtils {
         }
 
         exportBuilder.append(System.lineSeparator() + System.lineSeparator());
-        return exportBuilder;
+        return exportBuilder.toString();
     }
 
     /**
@@ -257,29 +229,34 @@ public final class CsvUtils {
             FeedbackQuestionAttributes question,
             FeedbackQuestionDetails questionDetails,
             List<String> possibleRecipientsForGiver, String giver) {
+
         StringBuilder exportBuilder = new StringBuilder();
         for (String possibleRecipient : possibleRecipientsForGiver) {
-            String giverName = results.getFullNameFromRoster(giver);
-            String giverLastName = results.getLastNameFromRoster(giver);
-            String giverEmail = results.getDisplayableEmailFromRoster(giver);
-            String possibleRecipientName = results.getFullNameFromRoster(possibleRecipient);
-            String possibleRecipientLastName = results.getLastNameFromRoster(possibleRecipient);
-            String possibleRecipientEmail = results.getDisplayableEmailFromRoster(possibleRecipient);
-
             if (questionDetails.shouldShowNoResponseText(question)) {
-                exportBuilder.append(SanitizationHelper.sanitizeForCsv(results.getTeamNameFromRoster(giver))
-                        + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(giverName))
-                        + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(giverLastName))
-                        + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(giverEmail))
-                        + "," + SanitizationHelper.sanitizeForCsv(results.getTeamNameFromRoster(possibleRecipient))
-                        + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(possibleRecipientName))
-                        + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(possibleRecipientLastName))
-                        + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(possibleRecipientEmail))
-                        + "," + questionDetails.getNoResponseTextInCsv(giver, possibleRecipient, results, question)
+                exportBuilder.append(sanitizeResultsForNoResponse(results, giver, possibleRecipient));
+                exportBuilder.append("," + getNoResponseTextInCsv(questionDetails)
                         + System.lineSeparator());
             }
         }
         return exportBuilder;
+    }
+
+    private String sanitizeResultsForNoResponse(FeedbackSessionResultsBundle results, String giver, String possibleRecipient) {
+        StringBuilder exportBuilder = new StringBuilder();
+        exportBuilder.append(SanitizationHelper.sanitizeForCsv(results.getTeamNameFromRoster(giver))
+                + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(results.getFullNameFromRoster(giver)))
+                + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(results.getLastNameFromRoster(giver)))
+                + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(results.getDisplayableEmailFromRoster(giver)))
+                + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(results.getTeamNameFromRoster(possibleRecipient)))
+                + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(results.getFullNameFromRoster(possibleRecipient)))
+                + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(results.getLastNameFromRoster(possibleRecipient)))
+                + "," + SanitizationHelper.sanitizeForCsv(StringHelper.removeExtraSpace(results.getDisplayableEmailFromRoster(possibleRecipient))));
+
+        return exportBuilder.toString();
+    }
+
+    private String getNoResponseTextInCsv(FeedbackQuestionDetails questionDetails) {
+        return questionDetails.getNoResponseTextInCsv();
     }
 
     private int getMaxNumberOfResponseComments(List<FeedbackResponseAttributes> allResponses,
