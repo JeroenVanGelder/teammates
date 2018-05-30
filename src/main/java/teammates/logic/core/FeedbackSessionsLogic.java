@@ -530,6 +530,48 @@ public final class FeedbackSessionsLogic {
         return getFeedbackSessionResponseStatus(session, roster, allQuestions);
     }
 
+    private FeedbackSessionResultsBundle getSortedFeedbackSessionResultsBundle(FeedbackSessionIdentification feedbackSessionIdentification) throws EntityDoesNotExistException, ExceedingRangeException {
+        FeedbackSessionResultsBundle results;
+
+        results = getFeedbackSessionResultsBundle(feedbackSessionIdentification);
+        results.addIdentificationFactors(feedbackSessionIdentification);
+
+        if (!results.isComplete) {
+            throw new ExceedingRangeException(ERROR_NUMBER_OF_RESPONSES_EXCEEDS_RANGE);
+        }
+        // sort responses by giver > recipient > qnNumber
+        results.responses.sort(results.compareByGiverRecipientQuestion);
+
+        return results;
+    }
+
+    private FeedbackSessionResultsBundle getFeedbackSessionResultsBundle(FeedbackSessionIdentification feedbackSessionIdentification) throws EntityDoesNotExistException {
+
+        FeedbackSessionResultsBundle results;
+
+
+        if (feedbackSessionIdentification.questionId == null) {
+
+            int indicatedRange = feedbackSessionIdentification.section == null ? Const.INSTRUCTOR_VIEW_RESPONSE_LIMIT : -1;
+
+            results = getFeedbackSessionResultsForInstructorInSectionWithinRangeFromView(
+                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.section,
+                    indicatedRange, Const.FeedbackSessionResults.GRQ_SORT_TYPE);
+
+        } else if (feedbackSessionIdentification.section == null) {
+
+            results = getFeedbackSessionResultsForInstructorFromQuestion(
+                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.questionId);
+
+        } else {
+
+            results = getFeedbackSessionResultsForInstructorFromQuestionInSection(
+                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.questionId, feedbackSessionIdentification.section);
+        }
+
+        return results;
+    }
+
     /**
      * Gets results of a feedback session to show to an instructor from an indicated question.
      * This will not retrieve the list of comments for this question.
@@ -2097,61 +2139,11 @@ public final class FeedbackSessionsLogic {
             FeedbackSessionIdentification feedbackSessionIdentification)
             throws EntityDoesNotExistException, ExceedingRangeException {
 
-//        String results = getFeedbackSessionResultsSummaryInSectionAsCsv(
-//                feedbackSessionIdentification);
-//
-//        return results;
-//    }
-//
-//    public String getFeedbackSessionResultsSummaryInSectionAsCsv(
-//            FeedbackSessionIdentification feedbackSessionIdentification)
-//            throws EntityDoesNotExistException, ExceedingRangeException {
-
-
-        String results = csvUtils.getFeedbackSessionResultsSummaryInSectionAsCsv(feedbackSessionIdentification, getSortedFeedbackSessionResultsBundle(feedbackSessionIdentification));
+        FeedbackSessionResultsBundle resultsBundle = getSortedFeedbackSessionResultsBundle(feedbackSessionIdentification);
+        String results = csvUtils.getFeedbackSessionResultsSummaryInSectionAsCsv(resultsBundle);
 
         return results;
     }
 
-    public FeedbackSessionResultsBundle getSortedFeedbackSessionResultsBundle(FeedbackSessionIdentification feedbackSessionIdentification) throws EntityDoesNotExistException, ExceedingRangeException {
-        FeedbackSessionResultsBundle results;
-
-        results = getFeedbackSessionResultsBundle(feedbackSessionIdentification);
-
-        if (!results.isComplete) {
-            throw new ExceedingRangeException(ERROR_NUMBER_OF_RESPONSES_EXCEEDS_RANGE);
-        }
-        // sort responses by giver > recipient > qnNumber
-        results.responses.sort(results.compareByGiverRecipientQuestion);
-
-        return results;
-    }
-
-    public FeedbackSessionResultsBundle getFeedbackSessionResultsBundle(FeedbackSessionIdentification feedbackSessionIdentification) throws EntityDoesNotExistException {
-
-        FeedbackSessionResultsBundle results;
-
-
-        if (feedbackSessionIdentification.questionId == null) {
-
-            int indicatedRange = feedbackSessionIdentification.section == null ? Const.INSTRUCTOR_VIEW_RESPONSE_LIMIT : -1;
-
-            results = getFeedbackSessionResultsForInstructorInSectionWithinRangeFromView(
-                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.section,
-                    indicatedRange, Const.FeedbackSessionResults.GRQ_SORT_TYPE);
-
-        } else if (feedbackSessionIdentification.section == null) {
-
-            results = getFeedbackSessionResultsForInstructorFromQuestion(
-                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.questionId);
-
-        } else {
-
-            results = getFeedbackSessionResultsForInstructorFromQuestionInSection(
-                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.questionId, feedbackSessionIdentification.section);
-        }
-
-        return results;
-    }
 
 }

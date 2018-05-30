@@ -53,6 +53,12 @@ public class FeedbackSessionResultsBundle {
     public Map<String, List<FeedbackResponseCommentAttributes>> responseComments;
     public boolean isComplete;
 
+    //Added for review
+    public boolean isMissingResponsesShown;
+    public boolean isStatsShown;
+    public String section;
+
+
     /**
      * Responses with identities of giver/recipients NOT hidden.
      * To be used for anonymous result calculation only, and identities hidden before showing to users.
@@ -404,6 +410,17 @@ public class FeedbackSessionResultsBundle {
      */
     public boolean isGiverVisible(FeedbackResponseAttributes response) {
         return isFeedbackParticipantVisible(true, response);
+    }
+
+    public boolean isResponseListVisible(List<FeedbackResponseAttributes> allResponses){
+        boolean isVisible = false;
+        for(FeedbackResponseAttributes response : allResponses)
+        {
+            if (!isRecipientVisible(response) || !isGiverVisible(response)) {
+                isVisible = true;
+            }
+        }
+        return isVisible;
     }
 
     public static String getAnonEmail(FeedbackParticipantType type, String name) {
@@ -1703,5 +1720,11 @@ public class FeedbackSessionResultsBundle {
             }
         }
         return SanitizationHelper.sanitizeForCsv(comment.toString());
+    }
+
+    public void addIdentificationFactors(FeedbackSessionIdentification feedbackSessionIdentification){
+        isMissingResponsesShown = feedbackSessionIdentification.isMissingResponsesShown;
+        isStatsShown = feedbackSessionIdentification. isStatsShown;
+        section = feedbackSessionIdentification.section;
     }
 }
