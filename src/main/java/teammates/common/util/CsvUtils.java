@@ -74,53 +74,26 @@ public final class CsvUtils {
             FeedbackSessionResultsBundle fsrBundle,
             Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>> entry){
 
-        StringBuilder exportBuilder = new StringBuilder();
-
         FeedbackSessionResultData feedbackSessionResultData = new FeedbackSessionResultData(fsrBundle, entry);
 
-        exportBuilder.append(createQuestionResultsHeader(fsrBundle, feedbackSessionResultData));
-        exportBuilder.append(feedbackSessionResultData.questionDetails.getCsvDetailedResponsesHeader(feedbackSessionResultData.maxNumOfResponseComments));
+        StringBuilder exportBuilder = getPreparedStringBuilderForFeedbackSessionResult(feedbackSessionResultData);
 
-        if (fsrBundle.isResponseListVisible(feedbackSessionResultData.allResponses)) {
-            feedbackSessionResultData.possibleGiversWithoutResponses.clear();
-            feedbackSessionResultData.possibleRecipientsForGiver.clear();
-        }
+        exportBuilder.append(getAllResponseDetailRowsInCsv(feedbackSessionResultData));
+
+        return exportBuilder.toString();
+    }
+
+    private String getAllResponseDetailRowsInCsv(FeedbackSessionResultData feedbackSessionResultData) {
+        StringBuilder exportBuilder = new StringBuilder();
+
+        clearAllListDataWhenVisible(feedbackSessionResultData);
 
         for (FeedbackResponseAttributes response : feedbackSessionResultData.allResponses) {
-
-            // print missing responses from the current giver
-            if (!response.giver.equals(feedbackSessionResultData.prevGiver) && fsrBundle.isMissingResponsesShown) {
-                exportBuilder.append(getRowsOfPossibleRecipientsInCsvFormat(fsrBundle,
-                        feedbackSessionResultData.question, feedbackSessionResultData.questionDetails,
-                        feedbackSessionResultData.possibleRecipientsForGiver, feedbackSessionResultData.prevGiver));
-                String giverIdentifier = feedbackSessionResultData.question.giverType == FeedbackParticipantType.TEAMS
-                        ? fsrBundle.getFullNameFromRoster(response.giver)
-                        : response.giver;
-
-                feedbackSessionResultData.possibleRecipientsForGiver = fsrBundle.getPossibleRecipients(feedbackSessionResultData.question, giverIdentifier);
-            }
-
-
-            // do not show all possible givers and recipients if there are anonymous givers and recipients
-            boolean hasCommentsForResponses = fsrBundle.responseComments.containsKey(response.getId());
-
-            feedbackSessionResultData.prevGiver = response.giver;
-            removeParticipantIdentifierFromList(feedbackSessionResultData.possibleGiversWithoutResponses,
-                    response.giver);
-            removeParticipantIdentifierFromList(feedbackSessionResultData.possibleRecipientsForGiver,
-                    response.recipient);
-
-            exportBuilder.append(feedbackSessionResultData.questionDetails.getCsvDetailedResponsesRow(fsrBundle, response, feedbackSessionResultData.question,
-                    hasCommentsForResponses));
-
+            exportBuilder.append(getResponseDetailsInCsvForSingleResponse(feedbackSessionResultData, response));
         }
 
-        // add the rows for the possible givers and recipients who have missing responses
-        if (fsrBundle.isMissingResponsesShown) {
-            exportBuilder.append(
-                    getRemainingRowsInCsvFormat(
-                            fsrBundle, entry, feedbackSessionResultData.question, feedbackSessionResultData.questionDetails,
-                            feedbackSessionResultData.possibleGiversWithoutResponses, feedbackSessionResultData.possibleRecipientsForGiver, feedbackSessionResultData.prevGiver));
+        if (feedbackSessionResultData.resultsBundle.isMissingResponsesShown) {
+            exportBuilder.append(getRemainingRowsInCsvFormat(feedbackSessionResultData));
         }
 
         exportBuilder.append(System.lineSeparator() + System.lineSeparator());
@@ -128,7 +101,48 @@ public final class CsvUtils {
         return exportBuilder.toString();
     }
 
-    private String createQuestionResultsHeader(FeedbackSessionResultsBundle fsrBundle, FeedbackSessionResultData feedbackSessionResultData) {
+    private StringBuilder getPreparedStringBuilderForFeedbackSessionResult(FeedbackSessionResultData feedbackSessionResultData) {
+        StringBuilder exportBuilder = new StringBuilder();
+        exportBuilder.append(createQuestionResultsHeader(feedbackSessionResultData));
+        exportBuilder.append(feedbackSessionResultData.getDetailedResponsesHeaderInCsv());
+        return exportBuilder;
+    }
+
+
+    private String getResponseDetailsInCsvForSingleResponse(FeedbackSessionResultData feedbackSessionResultData, FeedbackResponseAttributes response) {
+        StringBuilder exportBuilder = new StringBuilder();
+
+        if (!response.giver.equals(feedbackSessionResultData.prevGiver) && feedbackSessionResultData.resultsBundle.isMissingResponsesShown) {
+            exportBuilder.append(getRowsOfPossibleRecipientsInCsvFormat(feedbackSessionResultData, feedbackSessionResultData.prevGiver));
+
+            String giverIdentifier = feedbackSessionResultData.question.giverType == FeedbackParticipantType.TEAMS
+                    ? feedbackSessionResultData.resultsBundle.getFullNameFromRoster(response.giver)
+                    : response.giver;
+
+            feedbackSessionResultData.possibleRecipientsForGiver = feedbackSessionResultData.resultsBundle.getPossibleRecipients(feedbackSessionResultData.question, giverIdentifier);
+        }
+
+        boolean hasCommentsForResponses = feedbackSessionResultData.resultsBundle.responseComments.containsKey(response.getId());
+
+        feedbackSessionResultData.prevGiver = response.giver;
+        removeParticipantIdentifierFromList(feedbackSessionResultData.possibleGiversWithoutResponses,
+                response.giver);
+        removeParticipantIdentifierFromList(feedbackSessionResultData.possibleRecipientsForGiver,
+                response.recipient);
+
+        exportBuilder.append(feedbackSessionResultData.questionDetails.getCsvDetailedResponsesRow(feedbackSessionResultData.resultsBundle, response, feedbackSessionResultData.question,
+                hasCommentsForResponses));
+        return exportBuilder.toString();
+    }
+
+    private void clearAllListDataWhenVisible(FeedbackSessionResultData feedbackSessionResultData) {
+        if (feedbackSessionResultData.resultsBundle.isResponseListVisible(feedbackSessionResultData.allResponses)) {
+            feedbackSessionResultData.possibleGiversWithoutResponses.clear();
+            feedbackSessionResultData.possibleRecipientsForGiver.clear();
+        }
+    }
+
+    private String createQuestionResultsHeader(FeedbackSessionResultData feedbackSessionResultData) {
         StringBuilder exportBuilder = new StringBuilder();
         FeedbackQuestionDetails questionDetails = feedbackSessionResultData.question.getQuestionDetails();
 
@@ -137,9 +151,9 @@ public final class CsvUtils {
                 + System.lineSeparator() + System.lineSeparator());
 
         String statistics = questionDetails.getQuestionResultStatisticsCsv(feedbackSessionResultData.allResponses,
-                feedbackSessionResultData.question, fsrBundle);
+                feedbackSessionResultData.question, feedbackSessionResultData.resultsBundle);
 
-        if (!statistics.isEmpty() && fsrBundle.isStatsShown) {
+        if (!statistics.isEmpty() && feedbackSessionResultData.resultsBundle.isStatsShown) {
             exportBuilder.append("Summary Statistics,").append(System.lineSeparator());
             exportBuilder.append(statistics).append(System.lineSeparator());
         }
@@ -147,82 +161,37 @@ public final class CsvUtils {
         return exportBuilder.toString();
     }
 
-    /**
-     * Generate rows of missing responses for the remaining possible givers and recipients.
-     *
-     * <p>If for the prevGiver, possibleRecipientsForGiver is not empty,
-     * the remaining missing responses for the prevGiver will be generated first.
-     * @return the remaining rows of missing responses in csv format
-     * @param results
-     * @param entry
-     * @param question
-     * @param questionDetails
-     * @param remainingPossibleGivers
-     * @param possibleRecipientsForGiver
-     * @param prevGiver
-     */
-    private String getRemainingRowsInCsvFormat(
-            FeedbackSessionResultsBundle results,
-            Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>> entry,
-            FeedbackQuestionAttributes question,
-            FeedbackQuestionDetails questionDetails,
-            List<String> remainingPossibleGivers,
-            List<String> possibleRecipientsForGiver, String prevGiver) {
+    private String getRemainingRowsInCsvFormat(FeedbackSessionResultData feedbackSessionResultData) {
+
         StringBuilder exportBuilder = new StringBuilder();
 
-        if (possibleRecipientsForGiver != null) {
-            exportBuilder.append(getRowsOfPossibleRecipientsInCsvFormat(results,
-                    question, questionDetails, possibleRecipientsForGiver,
-                    prevGiver));
+        if (feedbackSessionResultData.possibleRecipientsForGiver != null) {
+            exportBuilder.append(getRowsOfPossibleRecipientsInCsvFormat(feedbackSessionResultData, feedbackSessionResultData.prevGiver));
 
         }
 
-        removeParticipantIdentifierFromList(remainingPossibleGivers, prevGiver);
+        removeParticipantIdentifierFromList(feedbackSessionResultData.possibleGiversWithoutResponses, feedbackSessionResultData.prevGiver);
 
-        for (String possibleGiverWithNoResponses : remainingPossibleGivers) {
-            List<String> possibleRecipientsForRemainingGiver =
-                    results.getPossibleRecipients(entry.getKey(), possibleGiverWithNoResponses);
-
-            exportBuilder.append(getRowsOfPossibleRecipientsInCsvFormat(results,
-                    question, questionDetails, possibleRecipientsForRemainingGiver,
+        for (String possibleGiverWithNoResponses : feedbackSessionResultData.possibleGiversWithoutResponses) {
+            feedbackSessionResultData.possibleRecipientsForGiver=feedbackSessionResultData.resultsBundle.getPossibleRecipients(feedbackSessionResultData.question, possibleGiverWithNoResponses);
+            exportBuilder.append(getRowsOfPossibleRecipientsInCsvFormat(feedbackSessionResultData,
                     possibleGiverWithNoResponses));
         }
 
         return exportBuilder.toString();
     }
 
-    /**
-     * Given a participantIdentifier, remove it from participantIdentifierList.
-     *
-     * <p>Before removal, {@link FeedbackSessionResultsBundle#getFullNameFromRoster} is used to
-     * convert the identifier into a canonical form if the participantIdentifierType is TEAMS.
-     * @param participantIdentifierList
-     * @param participantIdentifier
-     */
     private void removeParticipantIdentifierFromList(List<String> participantIdentifierList, String participantIdentifier) {
             participantIdentifierList.remove(participantIdentifier);
     }
 
-    /**
-     * For a giver and a list of possibleRecipientsForGiver, generate rows
-     * of missing responses between the giver and the possible recipients.
-     * @param results
-     * @param question
-     * @param questionDetails
-     * @param possibleRecipientsForGiver
-     * @param giver
-     */
-    private StringBuilder getRowsOfPossibleRecipientsInCsvFormat(
-            FeedbackSessionResultsBundle results,
-            FeedbackQuestionAttributes question,
-            FeedbackQuestionDetails questionDetails,
-            List<String> possibleRecipientsForGiver, String giver) {
+    private StringBuilder getRowsOfPossibleRecipientsInCsvFormat(FeedbackSessionResultData feedbackSessionResultData, String giver) {
 
         StringBuilder exportBuilder = new StringBuilder();
-        for (String possibleRecipient : possibleRecipientsForGiver) {
-            if (questionDetails.shouldShowNoResponseText(question)) {
-                exportBuilder.append(sanitizeResultsForNoResponse(results, giver, possibleRecipient));
-                exportBuilder.append("," + getNoResponseTextInCsv(questionDetails)
+        for (String possibleRecipient : feedbackSessionResultData.possibleRecipientsForGiver) {
+            if (feedbackSessionResultData.questionDetails.shouldShowNoResponseText(feedbackSessionResultData.question)) {
+                exportBuilder.append(sanitizeResultsForNoResponse(feedbackSessionResultData.resultsBundle, giver, possibleRecipient));
+                exportBuilder.append("," + getNoResponseTextInCsv(feedbackSessionResultData.questionDetails)
                         + System.lineSeparator());
             }
         }
@@ -277,15 +246,17 @@ public final class CsvUtils {
 
 
     private class FeedbackSessionResultData {
-        FeedbackQuestionAttributes question;
-        FeedbackQuestionDetails questionDetails;
-        public List<String> possibleGiversWithoutResponses;
-        public List<String> possibleRecipientsForGiver;
-        public String prevGiver;
-        List<FeedbackResponseAttributes> allResponses;
-        int maxNumOfResponseComments;
+        private FeedbackSessionResultsBundle resultsBundle;
+        private FeedbackQuestionAttributes question;
+        private FeedbackQuestionDetails questionDetails;
+        private List<String> possibleGiversWithoutResponses;
+        private List<String> possibleRecipientsForGiver;
+        private String prevGiver;
+        private List<FeedbackResponseAttributes> allResponses;
+        private int maxNumOfResponseComments;
 
-        public FeedbackSessionResultData(FeedbackSessionResultsBundle fsrBundle, Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>> entry) {
+        private FeedbackSessionResultData(FeedbackSessionResultsBundle fsrBundle, Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>> entry) {
+            resultsBundle = fsrBundle;
             question = entry.getKey();
             this.possibleGiversWithoutResponses = fsrBundle.getPossibleGiversInSection(question, fsrBundle.section);
             this.possibleRecipientsForGiver = new ArrayList<>();
@@ -295,12 +266,8 @@ public final class CsvUtils {
             questionDetails = question.getQuestionDetails();
         }
 
-        public List<String> getPossibleGiversWithoutResponses() {
-            return possibleGiversWithoutResponses;
-        }
-
-        public List<String> getPossibleRecipientsForGiver() {
-            return possibleRecipientsForGiver;
+        private String getDetailedResponsesHeaderInCsv() {
+            return questionDetails.getCsvDetailedResponsesHeader(maxNumOfResponseComments);
         }
     }
 }
