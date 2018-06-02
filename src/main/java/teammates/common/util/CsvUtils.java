@@ -70,8 +70,8 @@ public final class CsvUtils {
 
     private String fillFeedbackResultsForQuestionsWithEntrySet(FeedbackSessionResultsBundle results) {
         StringBuilder exportBuilder =  new StringBuilder(100);
-        Set<Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>>> entrySet =
-                results.getQuestionResponseMap().entrySet();
+        Set<Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>>> entrySet = results.getQuestionResponseEntrySet();
+
         for (Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>> entry : entrySet) {
             exportBuilder.append(getFeedbackSessionResultsForQuestionInCsvFormat(results, entry));
         }
@@ -95,12 +95,19 @@ public final class CsvUtils {
         StringBuilder exportBuilder = new StringBuilder();
         exportBuilder.append(createQuestionResultsHeader(feedbackSessionResultData));
         exportBuilder.append(feedbackSessionResultData.getDetailedResponsesHeaderInCsv());
+        clearAllListDataWhenVisible(feedbackSessionResultData);
         return exportBuilder;
     }
 
     private String createQuestionResultsHeader(FeedbackSessionResultData feedbackSessionResultData) {
         return getquestionHeader(feedbackSessionResultData) +
                 getRequiredQuestionStatistics(feedbackSessionResultData);
+    }
+
+    private void clearAllListDataWhenVisible(FeedbackSessionResultData feedbackSessionResultData) {
+        if (feedbackSessionResultData.isResponseListVisible()) {
+            feedbackSessionResultData.clearAllListData();
+        }
     }
 
     private String getRequiredQuestionStatistics(FeedbackSessionResultData feedbackSessionResultData) {
@@ -131,8 +138,6 @@ public final class CsvUtils {
     private String getAllResponseDetailRowsInCsv(FeedbackSessionResultData feedbackSessionResultData) {
         StringBuilder exportBuilder = new StringBuilder();
 
-        clearAllListDataWhenVisible(feedbackSessionResultData);
-
         for (FeedbackResponseAttributes response : feedbackSessionResultData.allResponses) {
             exportBuilder.append(getResponseDetailsInCsvForSingleResponse(feedbackSessionResultData, response));
         }
@@ -146,22 +151,11 @@ public final class CsvUtils {
         return exportBuilder.toString();
     }
 
-    private void clearAllListDataWhenVisible(FeedbackSessionResultData feedbackSessionResultData) {
-        if (feedbackSessionResultData.isResponseListVisible()) {
-            feedbackSessionResultData.clearAllListData();
-        }
-    }
-
-
     private String getResponseDetailsInCsvForSingleResponse(FeedbackSessionResultData feedbackSessionResultData, FeedbackResponseAttributes response) {
         StringBuilder exportBuilder = new StringBuilder();
 
-        if (!response.giver.equals(feedbackSessionResultData.prevGiver) && feedbackSessionResultData.isMissingResponsesShown()) {
-            exportBuilder.append(getRowsOfPossibleRecipientsInCsvFormat(feedbackSessionResultData, feedbackSessionResultData.prevGiver));
-
-            String giverIdentifier = getGiverIdentifier(feedbackSessionResultData, response);
-
-            feedbackSessionResultData.updatePossibleRecipientsForGiverList(giverIdentifier);
+        if (isPossibleForProcessingRecipients(feedbackSessionResultData, response)) {
+            exportBuilder.append(getProcessedPossibleRecipientsInCsv(feedbackSessionResultData, response));
         }
 
         feedbackSessionResultData.removeUsedResponseIdFromParticipantIdentifierList(response);
@@ -169,6 +163,17 @@ public final class CsvUtils {
         exportBuilder.append(feedbackSessionResultData.getDetailedResponsesRowInCsv(response));
 
         return exportBuilder.toString();
+    }
+
+    private boolean isPossibleForProcessingRecipients(FeedbackSessionResultData feedbackSessionResultData, FeedbackResponseAttributes response) {
+        return !response.giver.equals(feedbackSessionResultData.prevGiver) && feedbackSessionResultData.isMissingResponsesShown();
+    }
+
+    private String getProcessedPossibleRecipientsInCsv(FeedbackSessionResultData feedbackSessionResultData, FeedbackResponseAttributes response) {
+        String giverIdentifier = getGiverIdentifier(feedbackSessionResultData, response);
+        String possibleRecipients = String.valueOf(getRowsOfPossibleRecipientsInCsvFormat(feedbackSessionResultData, feedbackSessionResultData.prevGiver));
+        feedbackSessionResultData.updatePossibleRecipientsForGiverList(giverIdentifier);
+        return possibleRecipients;
     }
 
     private String getGiverIdentifier(FeedbackSessionResultData feedbackSessionResultData, FeedbackResponseAttributes response) {
@@ -187,12 +192,18 @@ public final class CsvUtils {
 
         removeParticipantIdentifierFromList(feedbackSessionResultData.possibleGiversWithoutResponses, feedbackSessionResultData.prevGiver);
 
+        exportBuilder.append(getPossibleGiversWithNoResponseInCsv(feedbackSessionResultData));
+
+        return exportBuilder.toString();
+    }
+
+    private String getPossibleGiversWithNoResponseInCsv(FeedbackSessionResultData feedbackSessionResultData) {
+        StringBuilder exportBuilder = new StringBuilder();
         for (String possibleGiverWithNoResponses : feedbackSessionResultData.possibleGiversWithoutResponses) {
             feedbackSessionResultData.updatePossibleRecipientsForGiverList(possibleGiverWithNoResponses);
             exportBuilder.append(getRowsOfPossibleRecipientsInCsvFormat(feedbackSessionResultData,
                     possibleGiverWithNoResponses));
         }
-
         return exportBuilder.toString();
     }
 

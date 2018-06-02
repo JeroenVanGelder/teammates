@@ -1727,4 +1727,8 @@ public class FeedbackSessionResultsBundle {
         isStatsShown = feedbackSessionIdentification. isStatsShown;
         section = feedbackSessionIdentification.section;
     }
+
+    public Set<Map.Entry<FeedbackQuestionAttributes, List<FeedbackResponseAttributes>>> getQuestionResponseEntrySet() {
+        return getQuestionResponseMap().entrySet();
+    }
 }
