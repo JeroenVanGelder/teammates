@@ -44,6 +44,8 @@ public final class FeedbackSessionsLogic {
     private static final String ERROR_NON_EXISTENT_FS_UPDATE = String.format(ERROR_NON_EXISTENT_FS_STRING_FORMAT, "update");
     private static final String ERROR_NON_EXISTENT_FS_CHECK = String.format(ERROR_NON_EXISTENT_FS_STRING_FORMAT, "check");
     private static final String ERROR_NON_EXISTENT_FS_VIEW = String.format(ERROR_NON_EXISTENT_FS_STRING_FORMAT, "view");
+    private static final String ERROR_NUMBER_OF_RESPONSES_EXCEEDS_RANGE = "Number of responses exceeds the limited range";
+
     private static final String ERROR_FS_ALREADY_PUBLISH = "Error publishing feedback session: "
                                                            + "Session has already been published.";
     private static final String ERROR_FS_ALREADY_UNPUBLISH = "Error unpublishing feedback session: "
@@ -528,6 +530,48 @@ public final class FeedbackSessionsLogic {
         return getFeedbackSessionResponseStatus(session, roster, allQuestions);
     }
 
+    private FeedbackSessionResultsBundle getSortedFeedbackSessionResultsBundle(FeedbackSessionIdentification feedbackSessionIdentification) throws EntityDoesNotExistException, ExceedingRangeException {
+        FeedbackSessionResultsBundle results;
+
+        results = getFeedbackSessionResultsBundle(feedbackSessionIdentification);
+        results.addIdentificationFactors(feedbackSessionIdentification);
+
+        if (!results.isComplete) {
+            throw new ExceedingRangeException(ERROR_NUMBER_OF_RESPONSES_EXCEEDS_RANGE);
+        }
+        // sort responses by giver > recipient > qnNumber
+        results.responses.sort(results.compareByGiverRecipientQuestion);
+
+        return results;
+    }
+
+    private FeedbackSessionResultsBundle getFeedbackSessionResultsBundle(FeedbackSessionIdentification feedbackSessionIdentification) throws EntityDoesNotExistException {
+
+        FeedbackSessionResultsBundle results;
+
+
+        if (feedbackSessionIdentification.questionId == null) {
+
+            int indicatedRange = feedbackSessionIdentification.section == null ? Const.INSTRUCTOR_VIEW_RESPONSE_LIMIT : -1;
+
+            results = getFeedbackSessionResultsForInstructorInSectionWithinRangeFromView(
+                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.section,
+                    indicatedRange, Const.FeedbackSessionResults.GRQ_SORT_TYPE);
+
+        } else if (feedbackSessionIdentification.section == null) {
+
+            results = getFeedbackSessionResultsForInstructorFromQuestion(
+                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.questionId);
+
+        } else {
+
+            results = getFeedbackSessionResultsForInstructorFromQuestionInSection(
+                    feedbackSessionIdentification.feedbackSessionName, feedbackSessionIdentification.courseId, feedbackSessionIdentification.userEmail, feedbackSessionIdentification.questionId, feedbackSessionIdentification.section);
+        }
+
+        return results;
+    }
+
     /**
      * Gets results of a feedback session to show to an instructor from an indicated question.
      * This will not retrieve the list of comments for this question.
@@ -539,6 +583,7 @@ public final class FeedbackSessionsLogic {
         // Load details of students and instructors once and pass it to callee
         // methods
         // (rather than loading them many times).
+
         CourseRoster roster = new CourseRoster(
                 studentsLogic.getStudentsForCourse(courseId),
                 instructorsLogic.getInstructorsForCourse(courseId));
@@ -2091,25 +2136,14 @@ public final class FeedbackSessionsLogic {
     }
 
     public String getFeedbackSessionResultsSummaryAsCsv(
-            String feedbackSessionName, String courseId, String userEmail,
-            String questionId, boolean isMissingResponsesShown, boolean isStatsShown)
+            FeedbackSessionIdentification feedbackSessionIdentification)
             throws EntityDoesNotExistException, ExceedingRangeException {
 
-        String results = getFeedbackSessionResultsSummaryInSectionAsCsv(
-                feedbackSessionName, courseId, userEmail, null, questionId,
-                isMissingResponsesShown, isStatsShown);
+        FeedbackSessionResultsBundle resultsBundle = getSortedFeedbackSessionResultsBundle(feedbackSessionIdentification);
+        String results = csvUtils.getFeedbackSessionResultsSummaryInSectionAsCsv(resultsBundle);
 
         return results;
     }
 
-    public String getFeedbackSessionResultsSummaryInSectionAsCsv(
-            String feedbackSessionName, String courseId, String userEmail,
-            String section, String questionId, boolean isMissingResponsesShown, boolean isStatsShown)
-            throws EntityDoesNotExistException, ExceedingRangeException {
 
-
-        String results = csvUtils.getFeedbackSessionResultsSummaryInSectionAsCsv(feedbackSessionName,courseId,userEmail,section,questionId,isMissingResponsesShown,isStatsShown);
-
-        return results;
-    }
 }
