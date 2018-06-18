@@ -185,7 +185,7 @@ public abstract class FeedbackQuestionDetails {
                                           FeedbackSessionResultsBundle bundle,
                                           FeedbackQuestionAttributes question) {
         return "<i>"
-               + SanitizationHelper.sanitizeForHtml(getNoResponseText(giverEmail, recipientEmail, bundle, question))
+               + SanitizationHelper.sanitizeForHtml(getNoResponseText())
                + "</i>";
     }
 
@@ -198,23 +198,22 @@ public abstract class FeedbackQuestionDetails {
             && question.recipientType != FeedbackParticipantType.TEAMS;
     }
 
-    public String getNoResponseTextInCsv(String giverEmail, String recipientEmail,
-                                         FeedbackSessionResultsBundle bundle,
-                                         FeedbackQuestionAttributes question) {
-        return SanitizationHelper.sanitizeForCsv(getNoResponseText(giverEmail, recipientEmail, bundle, question));
-    }
-
     /**
      * Returns text to indicate that there is no response between the giver and recipient.
      *
      * <p>Used in instructorFeedbackResultsPage to show possible givers and recipients who did
      * not respond to the question in the feedback session.
      */
-    public String getNoResponseText(String giverEmail, String recipientEmail,
-                                    FeedbackSessionResultsBundle bundle,
-                                    FeedbackQuestionAttributes question) {
+    public String getNoResponseText() {
         return Const.INSTRUCTOR_FEEDBACK_RESULTS_MISSING_RESPONSE;
     }
+
+    public String getNoResponseTextInCsv() {
+        return SanitizationHelper.sanitizeForCsv(getNoResponseText());
+    }
+
+
+
 
     /** Checks if the question has been skipped. */
     public boolean isQuestionSkipped(String[] answer) {
